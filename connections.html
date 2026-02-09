@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connections - Memory Forest</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #0a0e27 0%, #1a1f4e 100%);
+            min-height: 100vh;
+            color: white;
+            padding-top: 80px;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            border-bottom: 1px solid rgba(124, 252, 0, 0.2);
+        }
+
+        header h1 {
+            font-size: 24px;
+            color: #7CFC00;
+            font-weight: 600;
+        }
+
+        nav {
+            display: flex;
+            gap: 30px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            color: #7CFC00;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .page-title {
+            text-align: center;
+            font-size: 42px;
+            margin-bottom: 50px;
+            background: linear-gradient(135deg, #7CFC00, #32CD32);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .connections-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+
+        .connection-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 1px solid rgba(124, 252, 0, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .connection-card:hover {
+            border-color: #7CFC00;
+            box-shadow: 0 20px 40px rgba(124, 252, 0, 0.15);
+            transform: translateY(-5px);
+        }
+
+        .card-title {
+            font-size: 24px;
+            color: #7CFC00;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .person {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(124, 252, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .person:last-child {
+            border-bottom: none;
+        }
+
+        .person:hover {
+            background: rgba(124, 252, 0, 0.05);
+            padding-left: 10px;
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .avatar-family { background: linear-gradient(135deg, #8B4513, #A0522D); }
+        .avatar-friend { background: linear-gradient(135deg, #4169E1, #6495ED); }
+        .avatar-mentor { background: linear-gradient(135deg, #FF8C00, #FFA500); }
+        .avatar-colleague { background: linear-gradient(135deg, #32CD32, #90EE90); }
+
+        .person-info {
+            flex: 1;
+        }
+
+        .person-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+            color: white;
+        }
+
+        .person-role {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-view-tree {
+            padding: 8px 16px;
+            background: rgba(124, 252, 0, 0.2);
+            border: 1px solid #7CFC00;
+            color: #7CFC00;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+
+        .btn-view-tree:hover {
+            background: #7CFC00;
+            color: #0a0e27;
+        }
+
+        .relationship-info {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 1px solid rgba(124, 252, 0, 0.2);
+            border-radius: 16px;
+            padding: 40px;
+            margin-bottom: 50px;
+            backdrop-filter: blur(10px);
+        }
+
+        .relationship-info h3 {
+            color: #7CFC00;
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        .types-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+        }
+
+        .type-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(124, 252, 0, 0.15);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .type-box:hover {
+            border-color: #7CFC00;
+            background: rgba(124, 252, 0, 0.05);
+        }
+
+        .type-emoji {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .type-name {
+            font-weight: 600;
+            color: #7CFC00;
+            margin-bottom: 8px;
+        }
+
+        .type-desc {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+
+            nav {
+                gap: 15px;
+            }
+
+            .container {
+                padding: 30px 15px;
+            

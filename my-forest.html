@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Forest - Memory Forest</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e27;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            border-bottom: 1px solid rgba(124, 252, 0, 0.2);
+        }
+
+        header h1 {
+            font-size: 24px;
+            color: #7CFC00;
+            font-weight: 600;
+        }
+
+        nav {
+            display: flex;
+            gap: 30px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            color: #7CFC00;
+        }
+
+        .container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            margin-top: 60px;
+            background: linear-gradient(180deg, #1a1f4e 0%, #0f1438 50%, #0a0e27 100%);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 80px;
+            left: 30px;
+            background: rgba(10, 14, 39, 0.85);
+            border: 1px solid rgba(124, 252, 0, 0.3);
+            border-radius: 12px;
+            padding: 25px;
+            color: white;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+            z-index: 50;
+        }
+
+        .info-panel h2 {
+            color: #7CFC00;
+            font-size: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-item {
+            margin: 12px 0;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .info-label {
+            color: #7CFC00;
+            font-weight: 600;
+        }
+
+        .stats-panel {
+            position: absolute;
+            top: 80px;
+            right: 30px;
+            background: rgba(10, 14, 39, 0.85);
+            border: 1px solid rgba(124, 252, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            backdrop-filter: blur(10px);
+            z-index: 50;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 12px 0;
+            font-size: 14px;
+            gap: 20px;
+        }
+
+        .stat-label {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .stat-value {
+            color: #7CFC00;
+            font-weight: 600;
+        }
+
+        .btn-add-memory {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #7CFC00, #32CD32);
+            color: #0a0e27;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 50;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(124, 252, 0, 0.4);
+        }
+
+        .btn-add-memory:hover {
+            transform: translateX(-50%) translateY(-3px);
+            box-shadow: 0 15px 40px rgba(124, 252, 0, 0.6);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 1px solid rgba(124, 252, 0, 0.3);
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            color: white;
+            backdrop-filter: blur(20px);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-content h2 {
+            color: #7CFC00;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #7CFC00;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(124, 252, 0, 0.2);
+            border-radius: 6px;
+            color: white;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #7CFC00;
+            background: rgba(124, 252, 0, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn-submit,
+        .btn-cancel {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #7CFC00, #32CD32);
+            color: #0a0e27;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(124, 252, 0, 0.3);
+        }
+
+        .btn-cancel {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            border-color: #7CFC00;
+            background: rgba(124, 252, 0, 0.1);
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 120px;
+            left: 30px;
+            background: rgba(10, 14, 39, 0.85);
+            border: 1px solid rgba(124, 252, 0, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            max-width: 250px;
+            z-index: 50;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+
+            .info-panel, .stats-panel, .controls-hint {
+                font-size: 12px;
+                padding: 15px;
+                max-width: 200px;
+            }
+
+            .modal-content {
+                padding: 25px;
+            }
+
+            nav {
+                gap: 15px;
+            }
+
+            .btn-add-memory {
+                bottom: 20px;
+                padding: 12px 25px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🌲 Memory Forest</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="my-forest.html">My Forest</a>
+            <a href="memories.html">Memories</a>
+            <a href="connections.html">Connections</a>
+            <a href="about.html">About</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+
+            <div class="info-panel">
+                <h2>🌳 My Tree</h2>
+                <div class="info-item">
+                    <span class="info-label">Age:</span> <span id="tree-age">15</span> years
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Memories:</span> <span id="memory-count">0</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Health:</span> <span id="tree-health">85%</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Last Update:</span> <span id="last-update">Today</span>
+                </div>
+            </div>
+
+            <div class="stats-panel">
+                <div class="stat-row">
+                    <span class="stat-label">🌿 Leaves:</span>
+                    <span class="stat-value" id="leaves-count">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">🌸 Flowers:</span>
+                    <span class="stat-value" id="flowers-count">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">⚡ Growth:</span>
+                    <span class="stat-value" id="growth-rate">100%</span>
+                </div>
+            </div>
+
+            <div class="controls-hint">
+                <div>🖱️ <strong>Drag</strong> to rotate</div>
+                <div>🔍 <strong>Scroll</strong> to zoom</div>
+                <div>👆 <strong>Tap</strong> a leaf to view</div>
+            </div>
+
+            <button class="btn-add-memory" onclick="openMemoryModal()">+ Add Memory</button>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="memoryModal" class="modal">
+        <div class="modal-content">
+            <h2>🌿 Add a Memory</h2>
+            
+            <div class="form-group">
+                <label>Memory Title</label>
+                <input type="text" id="memoryTitle" placeholder="Give your memory a name...">
+            </div>
+
+            <div class="form-group">
+                <label>Memory Type</label>
+                <select id="memoryType">
+                    <option value="happy">😊 Happy</option>
+                    <option value="sad">😢 Sad</option>
+                    <option value="special">✨ Special</option>
+                    <option value="normal">📌 Normal</option>
+                    <option value="recovered">💪 Recovered</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="memoryDate">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="memoryDescription" placeholder="Tell your story..."></textarea>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-submit" onclick="saveMemory()">Save Memory</button>
+                <button class="btn-cancel" onclick="closeMemoryModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // Scene Setup
+        const canvas = document.getElementById('canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / (window.innerHeight - 60), 0.1, 10000);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight - 60);
+        renderer.setClearColor(0x0a0e27);
+        renderer.shadowMap.enabled = true;
+
+        camera.position.set(0, 8, 15);
+        camera.lookAt(0, 5, 0);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+
+        scene.fog = new THREE.Fog(0x0a0e27, 100, 150);
+
+        // Ground
+        const groundGeometry = new THREE.CircleGeometry(50, 64);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2d5016,
+            roughness: 0.8
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Orbit Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 2;
+        controls.minDistance = 12;
+        controls.maxDistance = 80;
+
+        // Memory Tree Class
+        class MemoryTree {
+            constructor() {
+                this.leaves = [];
+                this.memories = [];
+                this.trunkGroup = null;
+            }
+
+            create() {
+                const trunkGroup = new THREE.Group();
+
+                // Main Trunk
+                const trunkGeometry = new THREE.CylinderGeometry(0.6, 0.8, 10, 16);
+                const trunkMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x654321,
+                    roughness: 0.9,
+                    metalness: 0.1
+                });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.castShadow = true;
+                trunk.receiveShadow = true;
+                trunk.position.y = 5;
+                trunkGroup.add(trunk);
+
+                // Add growth rings
+                for (let i = 0; i < 15; i++) {
+                    const ringGeometry = new THREE.TorusGeometry(0.65, 0.08, 16, 100);
+                    const ringMaterial = new THREE.MeshStandardMaterial({
+                        color: 0x8B4513,
+                        metalness: 0.2
+                    });
+                    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                    ring.position.y = (i / 14) * 9 + 1;
+                    ring.rotation.x = Math.PI / 2;
+                    trunkGroup.add(ring);
+                }
+
+                this.trunkGroup = trunkGroup;
+                scene.add(trunkGroup);
+            }
+
+            addMemory(memory) {
+                this.memories.push(memory);
+                this.createMemoryBranch(memory);
+                updateUI();
+            }
+
+            createMemoryBranch(memory) {
+                const branchGroup = new THREE.Group();
+
+                const angle = Math.random() * Math.PI * 2;
+                const height = 8 + Math.random() * 3;
+
+                // Branch
+                const branchGeometry = new THREE.CylinderGeometry(0.1, 0.15, 3, 8);
+                const branchColor = this.getMemoryColor(memory.type);
+                const branchMaterial = new THREE.MeshStandardMaterial({
+                    color: branchColor,
+                    roughness: 0.7,
+                    metalness: 0.2
+                });
+
+                const branch = new THREE.Mesh(branchGeometry, branchMaterial);
+                branch.castShadow = true;
+                branch.position.y = height;
+                branch.rotation.z = Math.PI / 6;
+                branchGroup.add(branch);
+
+                // Leaf
+                const leafGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+                const leafMaterial = new THREE.MeshStandardMaterial({
+                    color: branchColor,
+                    roughness: 0.3,
+                    metalness: 0.3,
+                    emissive: branchColor,
+                    emissiveIntensity: 0.3
+                });
+
+                const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+                leaf.castShadow = true;
+                leaf.position.set(
+                    Math.cos(angle) * 2,
+                    height + 1,
+                    Math.sin(angle) * 2
+                );
+                leaf.userData = memory;
+
+                branchGroup.add(leaf);
+                branchGroup.position.set(
+                    Math.cos(angle) * 2,
+                    0,
+                    Math.sin(angle) * 2
+                );
+
+                this.leaves.push(leaf);
+                this.trunkGroup.add(branchGroup);
+            }
+
+            getMemoryColor(type) {
+                const colors = {
+                    'happy': 0xFFD700,
+                    'sad': 0x4169E1,
+                    'normal': 0x7CFC00,
+                    'special': 0xFF1493,
+                    'recovered': 0x00CED1
+                };
+                return colors[type] || 0x7CFC00;
+            }
+        }
+
+        const memoryTree = new MemoryTree();
+        memoryTree.create();
+
+        // Load memories from localStorage
+        function loadMemories() {
+            const saved = localStorage.getItem('memories');
+            if (saved) {
+                const memories = JSON.parse(saved);
+                memories.forEach(mem => memoryTree.addMemory(mem));
+            } else {
+                // Add demo memories
+                const demoMemories = [
+                    { title: 'Summer Vacation', type: 'happy', date: '2024-06-15', description: 'Amazing summer!' },
+                    { title: 'Birthday', type: 'special', date: '2024-08-20', description: 'Special day' },
+                    { title: 'Graduation', type: 'special', date: '2024-05-10', description: 'Big achievement' }
+                ];
+                demoMemories.forEach(mem => memoryTree.addMemory(mem));
+            }
+        }
+
+        loadMemories();
+
+        function updateUI() {
+            document.getElementById('memory-count').textContent = memoryTree.memories.length;
+            document.getElementById('leaves-count').textContent = memoryTree.leaves.length;
+        }
+
+        // Modal Functions
+        function openMemoryModal() {
+            document.getElementById('memoryModal').classList.add('show');
+            document.getElementById('memoryDate').valueAsDate = new Date();
+        }
+
+        function closeMemoryModal() {
+            document.getElementById('memoryModal').classList.remove('show');
+        }
+
+        function saveMemory() {
+            const title = document.getElementById('memoryTitle').value;
+            const type = document.getElementById('memoryType').value;
+            const date = document.getElementById('memoryDate').value;
+            const description = document.getElementById('memoryDescription').value;
+
+            if (title && date) {
+                const memory = { title, type, date, description };
+                memoryTree.addMemory(memory);
+
+                // Save to localStorage
+                const saved = localStorage.getItem('memories') || '[]';
+                const memories = JSON.parse(saved);
+                memories.push(memory);
+                localStorage.setItem('memories', JSON.stringify(memories));
+
+                closeMemoryModal();
+                document.getElementById('memoryTitle').value = '';
+                document.getElementById('memoryDescription').value = '';
+
+                // Show success feedback
+                alert('✨ Memory added! Your tree has grown!');
+            } else {
+                alert('Please fill in title and date');
+            }
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('memoryModal');
+            if (event.target === modal) {
+                closeMemoryModal();
+            }
+        };
+
+        // Make functions globally accessible
+        window.openMemoryModal = openMemoryModal;
+        window.closeMemoryModal = closeMemoryModal;
+        window.saveMemory = saveMemory;
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            // Animate leaves
+            memoryTree.leaves.forEach((leaf, idx) => {
+                const time = Date.now() * 0.001 + idx;
+                leaf.position.y += Math.sin(time) * 0.005;
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / (window.innerHeight - 60);
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight - 60);
+        });
+    </script>
+</body>
+</html>

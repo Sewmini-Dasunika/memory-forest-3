@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memories - Memory Forest</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #0a0e27 0%, #1a1f4e 100%);
+            min-height: 100vh;
+            color: white;
+            padding-top: 80px;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            border-bottom: 1px solid rgba(124, 252, 0, 0.2);
+        }
+
+        header h1 {
+            font-size: 24px;
+            color: #7CFC00;
+            font-weight: 600;
+        }
+
+        nav {
+            display: flex;
+            gap: 30px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            color: #7CFC00;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .page-title {
+            text-align: center;
+            font-size: 42px;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, #7CFC00, #32CD32);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            background: rgba(124, 252, 0, 0.1);
+            border: 1px solid rgba(124, 252, 0, 0.3);
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: #7CFC00;
+            color: #0a0e27;
+            border-color: #7CFC00;
+        }
+
+        .memories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 50px;
+        }
+
+        .memory-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 1px solid rgba(124, 252, 0, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .memory-card:hover {
+            border-color: #7CFC00;
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(124, 252, 0, 0.15);
+        }
+
+        .memory-image {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+        }
+
+        .memory-content {
+            padding: 20px;
+        }
+
+        .memory-date {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+        }
+
+        .memory-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: white;
+        }
+
+        .memory-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .type-happy { background: rgba(255, 215, 0, 0.3); color: #FFD700; }
+        .type-sad { background: rgba(65, 105, 225, 0.3); color: #4169E1; }
+        .type-special { background: rgba(255, 20, 147, 0.3); color: #FF1493; }
+        .type-normal { background: rgba(124, 252, 0, 0.3); color: #7CFC00; }
+        .type-recovered { background: rgba(0, 206, 209, 0.3); color: #00CED1; }
+
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h2 {
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+
+            nav {
+                gap: 15px;
+            }
+
+            .container {
+                padding: 30px 15px;
+            }
+
+            .memories-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🌲 Memory Forest</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="my-forest.html">My Forest</a>
+            <a href="memories.html">Memories</a>
+            <a href="connections.html">Connections</a>
+            <a href="about.html">About</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <h2 class="page-title">📸 My Memories</h2>
+
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterMemories('all')">All</button>
+            <button class="filter-btn" onclick="filterMemories('happy')">😊 Happy</button>
+            <button class="filter-btn" onclick="filterMemories('sad')">😢 Sad</button>
+            <button class="filter-btn" onclick="filterMemories('special')">✨ Special</button>
+            <button class="filter-btn" onclick="filterMemories('normal')">📌 Normal</button>
+            <button class="filter-btn" onclick="filterMemories('recovered')">💪 Recovered</button>
+        </div>
+
+        <div class="memories-grid" id="memoriesGrid"></div>
+
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <div class="empty-state-icon">🌱</div>
+            <h2>No memories yet</h2>
+            <p>Start adding memories to grow your forest!</p>
+        </div>
+    </div>
+
+    <script>
+        let allMemories = [];
+        let currentFilter = 'all';
+
+        function loadAndDisplayMemories() {
+            const saved = localStorage.getItem('memories');
+            allMemories = saved ? JSON.parse(saved) : [];
+
+            if (allMemories.length === 0) {
+                // Demo memories
+                allMemories = [
+                    { title: 'Summer Vacation', type: 'happy', date: '2024-06-15', description: 'Amazing summer adventures!' },
+                    { title: 'Birthday Celebration', type: 'special', date: '2024-08-20', description: 'Turned 25 today!' },
+                    { title: 'Graduation Day', type: 'special', date: '2024-05-10', description: 'Finally graduated!' },
+                    { title: 'Autumn Walk', type: 'normal', date: '2024-10-15', description: 'Beautiful fall colors' },
+                    { title: 'Difficult Time', type: 'sad', date: '2023-02-14', description: 'Hard to remember' },
+                    { title: 'Recovery', type: 'recovered', date: '2024-01-10', description: 'Felt better today' }
+                ];
+            }
+
+            displayMemories();
+        }
+
+        function displayMemories() {
+            const grid = document.getElementById('memoriesGrid');
+            const emptyState = document.getElementById('emptyState');
+            grid.innerHTML = '';
+
+            const filtered = currentFilter === 'all' 
+                ? allMemories 
+                : allMemories.filter(m => m.type === currentFilter);
+
+            if (filtered.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            filtered.forEach((memory, idx) => {
+                const emoji = getEmoji(memory.type);
+                const card = document.createElement('div');
+                card.className = 'memory-card';
+                card.style.animationDelay = `${idx * 0.1}s`;
+                card.innerHTML = `
+                    <div class="memory-image">${emoji}</div>
+                    <div class="memory-content">
+                        <div class="memory-date">${new Date(memory.date).toLocaleDateString()}</div>
+                        <div class="memory-title">${memory.title}</div>
+                        <span class="memory-type type-${memory.type}">${capitalize(memory.type)}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterMemories(type) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            displayMemories();
+        }
+
+        function getEmoji(type) {
+            const emojis = {
+                happy: '😊',
+                sad: '😢',
+                special: '✨',
+                normal: '📌',
+                recovered: '💪'
+            };
+            return emojis[type] || '📸';
+        }
+
+        function capitalize(str) {
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        window.filterMemories = filterMemories;
+
+        // Load on page load
+        loadAndDisplayMemories();
+    </script>
+</body>
+</html>

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Forest - 3D Interactive Tree Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 300px;
+            font-size: 14px;
+            z-index: 100;
+            border: 2px solid #7CFC00;
+        }
+        
+        #info-panel h2 {
+            color: #7CFC00;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        #info-panel p {
+            margin: 8px 0;
+            line-height: 1.5;
+        }
+        
+        .memory-tag {
+            display: inline-block;
+            background: #7CFC00;
+            color: black;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin: 4px 4px 4px 0;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #7CFC00;
+            z-index: 100;
+        }
+        
+        #controls p {
+            margin: 8px 0;
+            font-size: 13px;
+        }
+        
+        .key {
+            color: #7CFC00;
+            font-weight: bold;
+        }
+        
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #32CD32;
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        .stat-item {
+            margin: 8px 0;
+        }
+        
+        .stat-label {
+            color: #32CD32;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="canvas"></canvas>
+        
+        <div id="info-panel">
+            <h2>🌳 Memory Tree</h2>
+            <p id="tree-info">Select a branch to view memory details</p>
+            <div id="memory-details" style="display:none;">
+                <p><strong>Type:</strong> <span id="memory-type"></span></p>
+                <p><strong>Year:</strong> <span id="memory-year"></span></p>
+                <p><strong>Season:</strong> <span id="memory-season"></span></p>
+                <p><strong>Tagged People:</strong> <span id="tagged-people"></span></p>
+            </div>
+        </div>
+        
+        <div id="stats">
+            <div class="stat-item"><span class="stat-label">Tree Health:</span> <span id="health">85%</span></div>
+            <div class="stat-item"><span class="stat-label">Total Memories:</span> <span id="total-memories">0</span></div>
+            <div class="stat-item"><span class="stat-label">Age (years):</span> <span id="tree-age">0</span></div>
+            <div class="stat-item"><span class="stat-label">FPS:</span> <span id="fps">0</span></div>
+        </div>
+        
+        <div id="controls">
+            <p><span class="key">🖱️ Drag</span> to Rotate | <span class="key">Scroll</span> to Zoom | <span class="key">Space</span> Toggle Info</p>
+            <p><span class="key">1-5</span> Memory Types | <span class="key">R</span> Reset</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three/examples/js/controls/OrbitControls.js"></script>
+    
+    <script>
+        // ==================== SCENE SETUP ====================
+        const canvas = document.getElementById('canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x1a1a2e, 0.8);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFShadowShadowMap;
+        
+        // Camera position
+        camera.position.set(0, 10, 20);
+        camera.lookAt(0, 5, 0);
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+        
+        // Fog for atmosphere
+        scene.fog = new THREE.Fog(0x1a1a2e, 100, 150);
+        
+        // Ground
+        const groundGeometry = new THREE.CircleGeometry(50, 64);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x2d5016,
+            roughness: 0.8,
+            metalness: 0.1
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        // Orbit controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 2;
+        controls.minDistance = 15;
+        controls.maxDistance = 100;
+        
+        // ==================== MEMORY TREE CLASS ====================
+        class MemoryTree {
+            constructor() {
+                this.trunk = null;
+                this.branches = [];
+                this.leaves = [];
+                this.selectedBranch = null;
+                this.memories = this.generateMemories();
+            }
+            
+            generateMemories() {
+                const memories = [];
+                const years = [2022, 2023, 2024, 2025];
+                const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const types = ['happy', 'sad', 'normal', 'special', 'recovered'];
+                const taggedPeople = [['Alice', 'Bob'], ['Charlie'], ['Diana', 'Eve', 'Frank'], ['Grace'], []];
+                
+                let memoryId = 0;
+                years.forEach((year, yearIdx) => {
+                    seasons.forEach((season, seasonIdx) => {
+                        for (let i = 0; i < 2; i++) {
+                            memories.push({
+                                id: memoryId++,
+                                year: year,
+                                season: season,
+                                month: months[seasonIdx * 3 + (i % 3)],
+                                type: types[Math.floor(Math.random() * types.length)],
+                                tagged: taggedPeople[Math.floor(Math.random() * taggedPeople.length)],
+                                description: `Memory from ${season} ${year}`
+                            });
+                        }
+                    });
+                });
+                return memories;
+            }
+            
+            create() {
+                const trunkGroup = new THREE.Group();
+                
+                // Create trunk with rings
+                const trunkHeight = 8;
+                const trunkRadius = 0.5;
+                const trunkGeometry = new THREE.CylinderGeometry(trunkRadius, trunkRadius * 1.2, trunkHeight, 16);
+                const trunkMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x654321,
+                    roughness: 0.9,
+                    metalness: 0.1,
+                    map: this.createBarkTexture()
+                });
+                this.trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                this.trunk.castShadow = true;
+                this.trunk.receiveShadow = true;
+                this.trunk.position.y = trunkHeight / 2;
+                trunkGroup.add(this.trunk);
+                
+                // Add rings to trunk
+                this.addTrunkRings(this.trunk, 2024, this.memories[0].year);
+                
+                // Create main branches for each year
+                const years = [...new Set(this.memories.map(m => m.year))];
+                years.forEach((year, yearIdx) => {
+                    const angle = (yearIdx / years.length) * Math.PI * 2;
+                    const yearMemories = this.memories.filter(m => m.year === year);
+                    
+                    // Year branch
+                    const yearBranch = this.createYearBranch(year, angle, yearMemories);
+                    trunkGroup.add(yearBranch);
+                    this.branches.push(yearBranch);
+                });
+                
+                scene.add(trunkGroup);
+                return trunkGroup;
+            }
+            
+            createBarkTexture() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(0, 0, 256, 256);
+                
+                for (let i = 0; i < 100; i++) {
+                    ctx.fillStyle = `rgba(0, 0, 0, ${Math.random() * 0.3})`;
+                    ctx.fillRect(
+                        Math.random() * 256,
+                        Math.random() * 256,
+                        Math.random() * 20 + 5,
+                        Math.random() * 40 + 10
+                    );
+                }
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.magFilter = THREE.NearestFilter;
+                return texture;
+            }
+            
+            addTrunkRings(trunk, currentYear, birthYear) {
+                for (let year = birthYear; year <= currentYear; year++) {
+                    const ringGeometry = new THREE.TorusGeometry(0.5, 0.05, 16, 100);
+                    const ringMaterial = new THREE.MeshStandardMaterial({
+                        color: 0x8B4513,
+                        metalness: 0.3
+                    });
+                    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                    
+                    const heightOffset = ((year - birthYear) / (currentYear - birthYear)) * 7;
+                    ring.position.y = heightOffset + 0.5;
+                    ring.rotation.x = Math.PI / 2;
+                    ring.scale.set(0.8, 0.8, 1);
+                    trunk.add(ring);
+                }
+            }
+            
+            createYearBranch(year, angle, yearMemories) {
+                const branchGroup = new THREE.Group();
+                const branchLength = 6;
+                const branchRadius = 0.3;
+                
+                const geometry = new THREE.CylinderGeometry(branchRadius * 0.6, branchRadius, branchLength, 12);
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x8B7355,
+                    roughness: 0.8
+                });
+                
+                const mainBranch = new THREE.Mesh(geometry, material);
+                mainBranch.castShadow = true;
+                mainBranch.receiveShadow = true;
+                mainBranch.position.y = 8 + branchLength / 2;
+                mainBranch.rotation.z = Math.PI / 4;
+                mainBranch.userData = { year, type: 'year-branch' };
+                
+                const branchContainer = new THREE.Group();
+                branchContainer.position.set(
+                    Math.cos(angle) * 3,
+                    8,
+                    Math.sin(angle) * 3
+                );
+                branchContainer.rotation.z = angle;
+                
+                branchGroup.add(mainBranch);
+                branchGroup.userData = yearMemories;
+                
+                // Create seasonal branches
+                const seasons = [...new Set(yearMemories.map(m => m.season))];
+                seasons.forEach((season, seasonIdx) => {
+                    const seasonAngle = (seasonIdx / seasons.length) * Math.PI * 2;
+                    const seasonBranch = this.createSeasonBranch(season, seasonAngle, year, yearMemories);
+                    branchGroup.add(seasonBranch);
+                });
+                
+                branchContainer.add(branchGroup);
+                return branchContainer;
+            }
+            
+            createSeasonBranch(season, angle, year, yearMemories) {
+                const branchGroup = new THREE.Group();
+                const seasonMemories = yearMemories.filter(m => m.season === season);
+                
+                const branchLength = 3;
+                const branchRadius = 0.15;
+                const geometry = new THREE.CylinderGeometry(branchRadius * 0.5, branchRadius, branchLength, 10);
+                const color = this.getSeasonColor(season);
+                const material = new THREE.MeshStandardMaterial({
+                    color: color,
+                    roughness: 0.7,
+                    metalness: 0.1
+                });
+                
+                const seasonBranch = new THREE.Mesh(geometry, material);
+                seasonBranch.castShadow = true;
+                seasonBranch.receiveShadow = true;
+                seasonBranch.position.y = 4;
+                seasonBranch.rotation.z = Math.PI / 6;
+                seasonBranch.userData = {
+                    season,
+                    year,
+                    type: 'season-branch',
+                    memories: seasonMemories
+                };
+                
+                branchGroup.add(seasonBranch);
+                branchGroup.position.set(
+                    Math.cos(angle) * 2.5,
+                    0,
+                    Math.sin(angle) * 2.5
+                );
+                branchGroup.rotation.y = angle;
+                
+                // Create leaves and memory nodes
+                seasonMemories.forEach((memory, idx) => {
+                    const leaf = this.createLeaf(memory, idx, seasonMemories.length);
+                    branchGroup.add(leaf);
+                });
+                
+                return branchGroup;
+            }
+            
+            createLeaf(memory, index, total) {
+                const leafGroup = new THREE.Group();
+                
+                // Leaf geometry
+                const leafGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+                const leafColor = this.getMemoryColor(memory.type);
+                const leafMaterial = new THREE.MeshStandardMaterial({
+                    color: leafColor,
+                    roughness: 0.4,
+                    metalness: 0.3,
+                    emissive: leafColor,
+                    emissiveIntensity: 0.4
+                });
+                
+                const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+                leaf.castShadow = true;
+                leaf.receiveShadow = true;
+                leaf.userData = memory;
+                
+                // Position leaves around the branch
+                const angle = (index / total) * Math.PI * 2;
+                const radius = 1.5;
+                leaf.position.set(
+                    Math.cos(angle) * radius,
+                    -1,
+                    Math.sin(angle) * radius
+                );
+                
+                // Add glow for special memories
+                if (memory.type === 'special' || memory.type === 'happy') {
+                    const glowGeometry = new THREE.SphereGeometry(0.2, 16, 16);
+                    const glowMaterial = new THREE.MeshBasicMaterial({
+                        color: leafColor,
+                        transparent: true,
+                        opacity: 0.2
+                    });
+                    const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                    leafGroup.add(glow);
+                }
+                
+                leafGroup.add(leaf);
+                leafGroup.userData = memory;
+                this.leaves.push(leaf);
+                
+                return leafGroup;
+            }
+            
+            getSeasonColor(season) {
+                const colors = {
+                    'Spring': 0x90EE90,
+                    'Summer': 0x32CD32,
+                    'Autumn': 0xFF8C00,
+                    'Winter': 0x87CEEB
+                };
+                return colors[season] || 0x7CFC00;
+            }
+            
+            getMemoryColor(type) {
+                const colors = {
+                    'happy': 0xFFD700,
+                    'sad': 0x4169E1,
+                    'normal': 0x7CFC00,
+                    'special': 0xFF1493,
+                    'recovered': 0x00CED1
+                };
+                return colors[type] || 0x7CFC00;
+            }
+        }
+        
+        // ==================== INTERACTION & RAYCASTING ====================
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const memoryTree = new MemoryTree();
+        let showInfo = true;
+        
+        memoryTree.create();
+        
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(memoryTree.leaves, true);
+            
+            if (intersects.length > 0) {
+                const selected = intersects[0].object;
+                if (selected.userData.type) {
+                    displayMemoryInfo(selected.userData);
+                    memoryTree.selectedBranch = selected;
+                }
+            } else {
+                document.getElementById('memory-details').style.display = 'none';
+                document.getElementById('tree-info').textContent = 'Select a branch to view memory details';
+            }
+        }
+        
+        function displayMemoryInfo(memory) {
+            if (!showInfo) return;
+            
+            const details = document.getElementById('memory-details');
+            document.getElementById('memory-type').textContent = memory.type || 'N/A';
+            document.getElementById('memory-year').textContent = memory.year || 'N/A';
+            document.getElementById('memory-season').textContent = memory.season || 'N/A';
+            document.getElementById('tagged-people').textContent = 
+                (memory.tagged && memory.tagged.length > 0) ? memory.tagged.join(', ') : 'Nobody';
+            
+            details.style.display = 'block';
+            document.getElementById('tree-info').textContent = `📸 ${memory.description}`;
+        }
+        
+        function updateStats() {
+            document.getElementById('total-memories').textContent = memoryTree.memories.length;
+            document.getElementById('tree-age').textContent = Math.floor(Math.random() * 50) + 10;
+            document.getElementById('health').textContent = Math.floor(Math.random() * 30 + 70) + '%';
+        }
+        
+        // Keyboard controls
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                showInfo = !showInfo;
+                document.getElementById('info-panel').style.opacity = showInfo ? '1' : '0.5';
+            }
+            if (e.key === 'r' || e.key === 'R') {
+                controls.reset();
+            }
+        });
+        
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('resize', onWindowResize);
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // ==================== ANIMATION LOOP ====================
+        let frameCount = 0;
+        let lastTime = Date.now();
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            frameCount++;
+            
+            controls.update();
+            
+            // Update FPS
+            const currentTime = Date.now();
+            if (currentTime >= lastTime + 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastTime = currentTime;
+                updateStats();
+            }
+            
+            // Gentle leaf animation
+            memoryTree.leaves.forEach((leaf, idx) => {
+                const time = Date.now() * 0.001 + idx;
+                leaf.position.y += Math.sin(time) * 0.01;
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Forest - Grow Your Memories Together</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e27;
+        }
+
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader {
+            width: 80px;
+            height: 80px;
+            border: 8px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 30px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 18px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .hero {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #1a1f4e 0%, #0f1438 50%, #0a0e27 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+            animation: pulse 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            animation: fadeInUp 1s ease-out 0.3s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1 {
+            font-size: clamp(36px, 8vw, 72px);
+            font-weight: 300;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #7CFC00, #32CD32);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 1px;
+        }
+
+        .hero p {
+            font-size: clamp(16px, 3vw, 24px);
+            font-weight: 300;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 50px;
+            max-width: 600px;
+            line-height: 1.8;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 1s ease-out 0.6s both;
+        }
+
+        .btn {
+            padding: 16px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7CFC00, #32CD32);
+            color: #0a0e27;
+            box-shadow: 0 10px 30px rgba(124, 252, 0, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(124, 252, 0, 0.5);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: white;
+            color: #667eea;
+            border-color: white;
+            transform: translateY(-3px);
+        }
+
+        .floating-trees {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 200px;
+            opacity: 0.3;
+            animation: fadeInUp 1.5s ease-out;
+        }
+
+        .tree-silhouette {
+            position: absolute;
+            bottom: 0;
+            opacity: 0.4;
+            filter: drop-shadow(0 0 10px rgba(124, 252, 0, 0.2));
+        }
+
+        .tree-1 {
+            left: 5%;
+            width: 80px;
+            height: 120px;
+            animation: sway 4s ease-in-out infinite;
+        }
+
+        .tree-2 {
+            right: 8%;
+            width: 100px;
+            height: 150px;
+            animation: sway 5s ease-in-out infinite 0.5s;
+        }
+
+        .tree-3 {
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 180px;
+            animation: sway 6s ease-in-out infinite 1s;
+        }
+
+        @keyframes sway {
+            0%, 100% {
+                transform: translateX(-50%) rotate(0deg);
+            }
+            50% {
+                transform: translateX(-50%) rotate(1deg);
+            }
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s ease-in-out infinite;
+            z-index: 2;
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(-50%) translateY(10px);
+                opacity: 0.5;
+            }
+        }
+
+        .scroll-icon {
+            width: 30px;
+            height: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            position: relative;
+        }
+
+        .scroll-icon::after {
+            content: '';
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 8px;
+            background: white;
+            border-radius: 2px;
+            animation: scroll 1s ease-in-out infinite;
+        }
+
+        @keyframes scroll {
+            0% {
+                transform: translateX(-50%) translateY(0);
+            }
+            100% {
+                transform: translateX(-50%) translateY(8px);
+            }
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10, 14, 39, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            border-bottom: 1px solid rgba(124, 252, 0, 0.1);
+        }
+
+        header h1 {
+            font-size: 24px;
+            color: #7CFC00;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        nav {
+            display: flex;
+            gap: 30px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s ease;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        nav a:hover {
+            color: #7CFC00;
+        }
+
+        .features-section {
+            position: relative;
+            z-index: 3;
+            padding: 100px 40px;
+            background: linear-gradient(180deg, transparent 0%, #0a0e27 100%);
+            margin-top: -50px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 48px;
+            color: white;
+            margin-bottom: 60px;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 1px solid rgba(124, 252, 0, 0.2);
+            padding: 40px 30px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature-card:hover {
+            border-color: #7CFC00;
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(124, 252, 0, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            color: #7CFC00;
+            font-size: 20px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.8;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px 20px;
+            }
+
+            nav {
+                gap: 15px;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                width: 100%;
+                padding: 0 20px;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .features-section {
+                padding: 60px 20px;
+            }
+
+            .section-title {
+                font-size: 32px;
+            }
+
+            .floating-trees {
+                height: 150px;
+            }
+
+            .tree-1, .tree-2, .tree-3 {
+                opacity: 0.2;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loader"></div>
+        <div class="loading-text">Growing Your Forest...</div>
+    </div>
+
+    <header>
+        <h1>🌲 Memory Forest</h1>
+        <nav>
+            <a href="#home">Home</a>
+            <a href="my-forest.html">My Forest</a>
+            <a href="memories.html">Memories</a>
+            <a href="connections.html">Connections</a>
+            <a href="about.html">About</a>
+        </nav>
+    </header>
+
+    <section class="hero" id="heroSection">
+        <div class="floating-trees">
+            <svg class="tree-silhouette tree-1" viewBox="0 0 50 80" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="25,5 10,35 20,35 5,70 45,70 30,35 40,35" fill="#7CFC00"/>
+                <rect x="22" y="65" width="6" height="15" fill="#8B4513"/>
+            </svg>
+            <svg class="tree-silhouette tree-2" viewBox="0 0 60 100" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="30,5 12,40 24,40 5,85 55,85 36,40 48,40" fill="#7CFC00"/>
+                <rect x="27" y="80" width="6" height="20" fill="#8B4513"/>
+            </svg>
+            <svg class="tree-silhouette tree-3" viewBox="0 0 70 120" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="35,5 14,45 28,45 5,100 65,100 42,45 56,45" fill="#7CFC00"/>
+                <rect x="32" y="95" width="6" height="25" fill="#8B4513"/>
+            </svg>
+        </div>
+
+        <div class="hero-content">
+            <h1>Grow Your Memories Together</h1>
+            <p>A digital world where your memories become a beautiful, living forest. Every moment is a leaf. Every year is a ring.</p>
+            <div class="hero-buttons">
+                <button class="btn btn-primary" onclick="window.location.href='my-forest.html'">Start Growing →</button>
+                <button class="btn btn-secondary" onclick="window.location.href='about.html'">Learn More</button>
+            </div>
+        </div>
+
+        <div class="scroll-indicator">
+            <div class="scroll-icon"></div>
+        </div>
+    </section>
+
+    <section class="features-section">
+        <h2 class="section-title">Why Memory Forest?</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🌳</div>
+                <h3>Your Personal Tree</h3>
+                <p>Watch your life tree grow with each memory. Your tree reflects your age, experiences, and emotional journey.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📸</div>
+                <h3>Organize Memories</h3>
+                <p>Memories organized by year, season, and month. Share photos, videos, and stories as leaves on your branches.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3>Connect & Share</h3>
+                <p>Build relationships with others. Tag people in memories and watch your forests grow together in real-time.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💭</div>
+                <h3>Emotional Tags</h3>
+                <p>Tag memories as happy, sad, special, or recovered. Your tree visually represents your emotional journey.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>3D Visualization</h3>
+                <p>Experience your memories in stunning 3D. Rotate, zoom, and explore your personal forest interactively.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✨</div>
+                <h3>Legacy Trees</h3>
+                <p>Create majestic memory trees for life's defining moments. Pass them down as digital heirlooms.</p>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Loading screen fade out
+        window.addEventListener('load', () => {
+            const loadingScreen = document.getElementById('loadingScreen');
+            setTimeout(() => {
+                loadingScreen.classList.add('fade-out');
+            }, 1500);
+        });
+
+        // Smooth scroll for nav links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

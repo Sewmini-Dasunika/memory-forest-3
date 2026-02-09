@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Forest - Explore Your Tree</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+        
+        nav {
+            display: flex;
+            gap: 15px;
+        }
+        
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
+            margin-top: 50px;
+        }
+        
+        #info-panel {
+            position: absolute;
+            top: 70px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 300px;
+            font-size: 13px;
+            z-index: 100;
+            border: 2px solid #7CFC00;
+        }
+        
+        #stats {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #32CD32;
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #7CFC00;
+            font-size: 12px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🌲 Memory Forest - 3D Viewer</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="my-memories.html">My Memories</a>
+            <a href="connections.html">Connections</a>
+            <a href="about.html">About</a>
+        </nav>
+    </header>
+
+    <div id="container">
+        <canvas id="canvas"></canvas>
+        
+        <div id="info-panel">
+            <h2>🌳 Memory Tree</h2>
+            <p id="tree-info">Hover over branches to view memory details</p>
+            <div id="memory-details" style="display:none; margin-top: 10px;">
+                <p><strong>Type:</strong> <span id="memory-type"></span></p>
+                <p><strong>Year:</strong> <span id="memory-year"></span></p>
+                <p><strong>Season:</strong> <span id="memory-season"></span></p>
+                <p><strong>Tagged:</strong> <span id="tagged-people"></span></p>
+            </div>
+        </div>
+        
+        <div id="stats">
+            <div>🌿 Health: <span id="health">85%</span></div>
+            <div>📸 Memories: <span id="total-memories">0</span></div>
+            <div>📊 Age: <span id="tree-age">15</span>yrs</div>
+            <div>⚡ FPS: <span id="fps">60</span></div>
+        </div>
+        
+        <div id="controls">
+            <p>🖱️ Drag to rotate | 🔍 Scroll to zoom | Space to toggle info | R to reset</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three/examples/js/controls/OrbitControls.js"></script>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        
+        renderer.setSize(window.innerWidth - 0, window.innerHeight - 50);
+        renderer.setClearColor(0x1a1a2e, 0.9);
+        renderer.shadowMap.enabled = true;
+        
+        camera.position.set(0, 10, 20);
+        camera.lookAt(0, 5, 0);
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+        
+        scene.fog = new THREE.Fog(0x1a1a2e, 100, 150);
+        
+        // Ground
+        const groundGeometry = new THREE.CircleGeometry(50, 64);
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x2d5016, roughness: 0.8 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        // Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 2;
+        controls.minDistance = 15;
+        controls.maxDistance = 100;
+        
+        // Memory Tree
+        class MemoryTree {
+            constructor() {
+                this.leaves = [];
+                this.memories = this.generateMemories();
+            }
+            
+            generateMemories() {
+                const memories = [];
+                const years = [2022, 2023, 2024, 2025];
+                const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+                const types = ['happy', 'sad', 'normal', 'special', 'recovered'];
+                const people = [['Alice', 'Bob'], ['Charlie'], ['Diana'], ['Eve'], []];
+                
+                let id = 0;
+                years.forEach((year) => {
+                    seasons.forEach((season) => {
+                        for (let i = 0; i < 2; i++) {
+                            memories.push({
+                                id: id++,
+                                year: year,
+                                season: season,
+                                type: types[Math.floor(Math.random() * types.length)],
+                                tagged: people[Math.floor(Math.random() * people.length)],
+                                description: `Memory from ${season} ${year}`
+                            });
+                        }
+                    });
+                });
+                return memories;
+            }
+            
+            create() {
+                const trunkGroup = new THREE.Group();
+                
+                // Trunk
+                const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.6, 8, 16);
+                const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x654321, roughness: 0.9 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.castShadow = true;
+                trunk.receiveShadow = true;
+                trunk.position.y = 4;
+                trunkGroup.add(trunk);
+                
+                // Branches
+                const years = [...new Set(this.memories.map(m => m.year))];
+                years.forEach((year, yearIdx) => {
+                    const angle = (yearIdx / years.length) * Math.PI * 2;
+                    const yearMemories = this.memories.filter(m => m.year === year);
+                    const yearBranch = this.createYearBranch(year, angle, yearMemories);
+                    trunkGroup.add(yearBranch);
+                });
+                
+                scene.add(trunkGroup);
+            }
+            
+            createYearBranch(year, angle, yearMemories) {
+                const branchContainer = new THREE.Group();
+                branchContainer.position.set(Math.cos(angle) * 3, 8, Math.sin(angle) * 3);
+                
+                const branchGeometry = new THREE.CylinderGeometry(0.2, 0.3, 6, 12);
+                const branchMaterial = new THREE.MeshStandardMaterial({ color: 0x8B7355, roughness: 0.8 });
+                const yearBranch = new THREE.Mesh(branchGeometry, branchMaterial);
+                yearBranch.castShadow = true;
+                yearBranch.position.y = 3;
+                yearBranch.rotation.z = Math.PI / 4;
+                branchContainer.add(yearBranch);
+                
+                const seasons = [...new Set(yearMemories.map(m => m.season))];
+                seasons.forEach((season, seasonIdx) => {
+                    const seasonAngle = (seasonIdx / seasons.length) * Math.PI * 2;
+                    const seasonMemories = yearMemories.filter(m => m.season === season);
+                    const seasonBranch = this.createSeasonBranch(season, seasonAngle, seasonMemories);
+                    branchContainer.add(seasonBranch);
+                });
+                
+                return branchContainer;
+            }
+            
+            createSeasonBranch(season, angle, seasonMemories) {
+                const branchGroup = new THREE.Group();
+                
+                const color = { 'Spring': 0x90EE90, 'Summer': 0x32CD32, 'Autumn': 0xFF8C00, 'Winter': 0x87CEEB }[season];
+                const branchGeometry = new THREE.CylinderGeometry(0.1, 0.15, 3, 10);
+                const branchMaterial = new THREE.MeshStandardMaterial({ color: color, roughness: 0.7 });
+                
+                const seasonBranch = new THREE.Mesh(branchGeometry, branchMaterial);
+                seasonBranch.castShadow = true;
+                seasonBranch.position.y = 2;
+                seasonBranch.rotation.z = Math.PI / 6;
+                branchGroup.add(seasonBranch);
+                
+                branchGroup.position.set(Math.cos(angle) * 2, 0, Math.sin(angle) * 2);
+                
+                seasonMemories.forEach((memory, idx) => {
+                    const leaf = this.createLeaf(memory, idx, seasonMemories.length);
+                    branchGroup.add(leaf);
+                });
+                
+                return branchGroup;
+            }
+            
+            createLeaf(memory, index, total) {
+                const leafGroup = new THREE.Group();
+                const colors = { 'happy': 0xFFD700, 'sad': 0x4169E1, 'normal': 0x7CFC00, 'special': 0xFF1493, 'recovered': 0x00CED1 };
+                const leafColor = colors[memory.type];
+                
+                const leafGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+                const leafMaterial = new THREE.MeshStandardMaterial({ color: leafColor, roughness: 0.4, metalness: 0.3, emissive: leafColor, emissiveIntensity: 0.3 });
+                
+                const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+                leaf.castShadow = true;
+                leaf.userData = memory;
+                
+                const angle = (index / total) * Math.PI * 2;
+                leaf.position.set(Math.cos(angle) * 1.5, -1, Math.sin(angle) * 1.5);
+                
+                leafGroup.add(leaf);
+                this.leaves.push(leaf);
+                return leafGroup;
+            }
+        }
+        
+        const memoryTree = new MemoryTree();
+        memoryTree.create();
+        
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let showInfo = true;
+        
+        function displayMemoryInfo(memory) {
+            if (!showInfo) return;
+            document.getElementById('memory-type').textContent = memory.type;
+            document.getElementById('memory-year').textContent = memory.year;
+            document.getElementById('memory-season').textContent = memory.season;
+            document.getElementById('tagged-people').textContent = memory.tagged.length > 0 ? memory.tagged.join(', ') : 'Nobody';
+            document.getElementById('memory-details').style.display = 'block';
+            document.getElementById('tree-info').textContent = `📸 ${memory.description}`;
+        }
+        
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(memoryTree.leaves);
+            
+            if (intersects.length > 0 && intersects[0].object.userData.year) {
+                displayMemoryInfo(intersects[0].object.userData);
+            }
+        });
+        
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                showInfo = !showInfo;
+                document.getElementById('info-panel').style.opacity = showInfo ? '1' : '0.5';
+            }
+            if (e.key.toLowerCase() === 'r') controls.reset();
+        });
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / (window.innerHeight - 50);
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight - 50);
+        });
+        
+        let frameCount = 0, lastTime = Date.now();
+        function animate() {
+            requestAnimationFrame(animate);
+            frameCount++;
+            controls.update();
+            
+            if (Date.now() >= lastTime + 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                document.getElementById('total-memories').textContent = memoryTree.memories.length;
+                frameCount = 0;
+                lastTime = Date.now();
+            }
+            
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Forest - Advanced 3D</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0e27;
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 40px;
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            border-bottom: 1px solid rgba(124, 252, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            color: #7CFC00;
+            font-size: 24px;
+        }
+
+        nav {
+            display: flex;
+            gap: 30px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #7CFC00;
+        }
+
+        .info-panel {
+            position: absolute;
+            top: 80px;
+            left: 30px;
+            background: rgba(10, 14, 39, 0.9);
+            border: 1px solid rgba(124, 252, 0, 0.3);
+            border-radius: 12px;
+            padding: 25px;
+            color: white;
+            max-width: 320px;
+            backdrop-filter: blur(10px);
+            z-index: 50;
+        }
+
+        .info-panel h2 {
+            color: #7CFC00;
+            margin-bottom: 15px;
+        }
+
+        .stat {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            color: #7CFC00;
+            font-weight: 600;
+        }
+
+        .controls-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 30px;
+            background: rgba(10, 14, 39, 0.9);
+            border: 1px solid rgba(124, 252, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            backdrop-filter: blur(10px);
+            z-index: 50;
+            max-width: 280px;
+        }
+
+        .control-item {
+            margin: 8px 0;
+            font-size: 13px;
+        }
+
+        .btn-group {
+            position: absolute;
+            bottom: 40px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 50;
+        }
+
+        button {
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #7CFC00, #32CD32);
+            color: #0a0e27;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(124, 252, 0, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(124, 252, 0, 0.5);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15));
+            border: 1px solid rgba(124, 252, 0, 0.3);
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            color: white;
+            backdrop-filter: blur(20px);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content h2 {
+            color: #7CFC00;
+            margin-bottom: 25px;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #7CFC00;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(124, 252, 0, 0.2);
+            border-radius: 6px;
+            color: white;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #7CFC00;
+            background: rgba(124, 252, 0, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .btn-cancel {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            box-shadow: none;
+        }
+
+        .btn-cancel:hover {
+            border-color: #7CFC00;
+            background: rgba(124, 252, 0, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+
+            nav {
+                gap: 15px;
+            }
+
+            .info-panel, .controls-panel {
+                font-size: 12px;
+                padding: 15px;
+                max-width: 200px;
+            }
+
+            .btn-group {
+                flex-direction: row;
+                right: 10px;
+                bottom: 10px;
+                gap: 5px;
+            }
+
+            button {
+                padding: 10px 15px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🌲 Memory Forest</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="my-forest-advanced.html">My Forest</a>
+            <a href="memories.html">Memories</a>
+            <a href="connections.html">Connections</a>
+        </nav>
+    </header>
+
+    <canvas id="canvas"></canvas>
+
+    <div class="info-panel">
+        <h2>��� My Tree</h2>
+        <div class="stat">
+            <span class="stat-label">Age:</span> <span id="tree-age">25</span> years
+        </div>
+        <div class="stat">
+            <span class="stat-label">Memories:</span> <span id="memory-count">0</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Health:</span> <span id="tree-health">95%</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Species:</span> <span id="tree-species">Oak</span>
+        </div>
+        <div class="stat">
+            <span class="stat-label">Growth:</span> <span id="growth-rate">Premium</span>
+        </div>
+    </div>
+
+    <div class="controls-panel">
+        <div style="color: #7CFC00; font-weight: 600; margin-bottom: 12px;">🎮 Controls</div>
+        <div class="control-item">🖱️ Drag to rotate</div>
+        <div class="control-item">🔍 Scroll to zoom</div>
+        <div class="control-item">👆 Click leaf to view</div>
+        <div class="control-item">📱 Mobile friendly</div>
+    </div>
+
+    <div class="btn-group">
+        <button onclick="openAddMemoryModal()">+ Memory</button>
+        <button onclick="growTree()">🌱 Grow</button>
+        <button onclick="resetCamera()">📷 Reset</button>
+    </div>
+
+    <!-- Modal -->
+    <div id="memoryModal" class="modal">
+        <div class="modal-content">
+            <h2>✨ Add a Memory</h2>
+            
+            <div class="form-group">
+                <label>Memory Title</label>
+                <input type="text" id="memoryTitle" placeholder="Give your memory a name...">
+            </div>
+
+            <div class="form-group">
+                <label>Memory Type</label>
+                <select id="memoryType">
+                    <option value="happy">😊 Happy</option>
+                    <option value="sad">😢 Sad</option>
+                    <option value="special">✨ Special</option>
+                    <option value="normal">📌 Normal</option>
+                    <option value="recovered">💪 Recovered</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="memoryDate">
+            </div>
+
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="memoryLocation" placeholder="Where was this?">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="memoryDescription" placeholder="Tell your story..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Tagged People</label>
+                <input type="text" id="memoryTags" placeholder="Comma separated names">
+            </div>
+
+            <div class="modal-buttons">
+                <button onclick="saveMemory()">💾 Save Memory</button>
+                <button class="btn-cancel" onclick="closeAddMemoryModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/three/examples/js/controls/OrbitControls.js"></script>
+    <script type="module">
+        import { auth, db, addMemory, getMemoriesRealtime } from './firebase-config.js';
+        import AdvancedMemoryTree from './3d-features.js';
+
+        // Scene Setup
+        const canvas = document.getElementById('canvas');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x0a0e27);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFShadowShadowMap;
+        renderer.physicallyCorrectLights = true;
+
+        camera.position.set(0, 8, 15);
+        camera.lookAt(0, 5, 0);
+
+        // Lighting Setup
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+        directionalLight.position.set(15, 25, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.far = 200;
+        directionalLight.shadow.camera.near = 0.1;
+        scene.add(directionalLight);
+
+        const pointLight1 = new THREE.PointLight(0x7CFC00, 0.5);
+        pointLight1.position.set(10, 15, 10);
+        scene.add(pointLight1);
+
+        const pointLight2 = new THREE.PointLight(0xFF1493, 0.3);
+        pointLight2.position.set(-10, 15, -10);
+        scene.add(pointLight2);
+
+        scene.fog = new THREE.Fog(0x0a0e27, 100, 150);
+
+        // Ground
+        const groundGeometry = new THREE.CircleGeometry(60, 64);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1a2d1a,
+            roughness: 0.9,
+            metalness: 0
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        ground.position.y = -0.01;
+        scene.add(ground);
+
+        // Add grass texture
+        const grassTexture = createGrassTexture();
+        groundMaterial.map = grassTexture;
+
+        // Orbit Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 2;
+        controls.minDistance = 10;
+        controls.maxDistance = 100;
+        controls.maxPolarAngle = Math.PI * 0.9;
+
+        // Create Advanced Tree
+        const advancedTree = new AdvancedMemoryTree(scene, camera, renderer);
+        advancedTree.createAdvancedTree();
+
+        // Load memories from Firebase
+        let currentUser = null;
+        let unsubscribe = null;
+
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('tree-age').textContent = 25;
+
+                // Load memories real-time
+                if (unsubscribe) unsubscribe();
+                unsubscribe = getMemoriesRealtime(user.uid, (memories) => {
+                    document.getElementById('memory-count').textContent = memories.length;
+                    
+                    // Add memory branches to tree
+                    memories.forEach((memory, idx) => {
+                        advancedTree.createMemoryBranch({
+                            title: memory.title,
+                            type: memory.memoryType,
+                            date: memory.date
+                        });
+                    });
+                });
+            }
+        });
+
+        // Global Functions
+        window.openAddMemoryModal = () => {
+            document.getElementById('memoryModal').classList.add('show');
+            document.getElementById('memoryDate').valueAsDate = new Date();
+        };
+
+        window.closeAddMemoryModal = () => {
+            document.getElementById('memoryModal').classList.remove('show');
+        };
+
+        window.saveMemory = async () => {
+            if (!currentUser) {
+                alert('Please login first');
+                return;
+            }
+
+            const title = document.getElementById('memoryTitle').value;
+            const type = document.getElementById('memoryType').value;
+            const date = document.getElementById('memoryDate').value;
+            const location = document.getElementById('memoryLocation').value;
+            const description = document.getElementById('memoryDescription').value;
+
+            if (!title || !date) {
+                alert('Please fill in title and date');
+                return;
+            }
+
+            try {
+                await addMemory(currentUser.uid, {
+                    title,
+                    memoryType: type,
+                    date,
+                    location,
+                    description,
+                    isPublic: false
+                });
+
+                window.closeAddMemoryModal();
+                document.getElementById('memoryTitle').value = '';
+                document.getElementById('memoryDescription').value = '';
+                document.getElementById('memoryLocation').value = '';
+
+                alert('✨ Memory added! Your tree has grown!');
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        };
+
+        window.growTree = () => {
+            advancedTree.growTree();
+        };
+
+        window.resetCamera = () => {
+            camera.position.set(0, 8, 15);
+            controls.target.set(0, 5, 0);
+            controls.update();
+        };
+
+        // Helper function: Create grass texture
+        function createGrassTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#1a2d1a';
+            ctx.fillRect(0, 0, 512, 512);
+
+            for (let i = 0; i < 500; i++) {
+                ctx.fillStyle = `rgba(45, 85, 45, ${Math.random() * 0.3})`;
+                ctx.fillRect(
+                    Math.random() * 512,
+                    Math.random() * 512,
+                    Math.random() * 10 + 2,
+                    Math.random() * 20 + 5
+                );
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.magFilter = THREE.NearestFilter;
+            texture.repeat.set(4, 4);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            return texture;
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            // Update tree animations
+            advancedTree.animateParticles();
+            advancedTree.animateBloom();
+
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Handle modal close on outside click
+        window.onclick = (event) => {
+            const modal = document.getElementById('memoryModal');
+            if (event.target === modal) {
+                window.closeAddMemoryModal();
+            }
+        };
+    </script>
+</body>
+</html>
